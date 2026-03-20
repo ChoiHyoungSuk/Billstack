@@ -174,12 +174,12 @@ LANDING_HTML = """<!doctype html>
     <main class=\"wrap\">
       <section class=\"hero\">
         <h1>Billstack</h1>
-        <p>Freelancer invoice summary prototype. Enter values and preview the result instantly.</p>
+        <p>Freelancer billing assistant. Draft invoice totals and share-ready summaries in seconds.</p>
       </section>
 
       <section class=\"grid\">
         <article class=\"card\">
-          <h2>Invoice Preview</h2>
+          <h2>Invoice Draft</h2>
           <form id=\"invoice-form\" method=\"post\" action=\"/invoice\">
             <div class=\"row two\">
               <div>
@@ -208,21 +208,21 @@ LANDING_HTML = """<!doctype html>
               </div>
             </div>
             <div class=\"actions\">
-              <button class=\"primary\" type=\"submit\">Generate Summary</button>
+              <button class=\"primary\" type=\"submit\">Generate Invoice Draft</button>
               <button class=\"ghost\" type=\"button\" id=\"fill-sample\">Use Sample</button>
             </div>
           </form>
           <div id=\"status\" class=\"endpoint\">Ready</div>
-          <pre id=\"result\" class=\"result\">Run the form to preview invoice output.</pre>
+          <pre id=\"result\" class=\"result\">Submit the form to generate your invoice draft.</pre>
         </article>
 
         <aside class=\"card meta\">
-          <h2>API Endpoints</h2>
+          <h2>Why Billstack</h2>
           <ul>
-            <li><code>GET /health</code> - service status</li>
-            <li><code>POST /invoice</code> - invoice summary JSON</li>
+            <li>Quote and invoice totals are calculated instantly with tax included.</li>
+            <li>Share a clean invoice summary with clients before sending payment details.</li>
           </ul>
-          <p class=\"endpoint\">Tip: Share this page to collect fast feedback on output format and pricing UX.</p>
+          <p class=\"endpoint\">Next step: connect checkout and send invoice links from one workflow.</p>
         </aside>
       </section>
     </main>
