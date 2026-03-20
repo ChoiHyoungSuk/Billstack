@@ -1,15 +1,26 @@
 # Billstack
 
-Minimal vertical slice for Billstack: generate invoice summary from CLI inputs.
+Billstack minimal vertical slice with CLI + HTTP service for Railway deployment.
 
-## Run
+## Local CLI
 
 ```bash
 python3 app/main.py --client "Acme Co" --project "Landing Page" --hourly-rate 100 --hours 5.5 --tax-rate 0.1
 ```
 
-## Test
+## Local Server
 
 ```bash
-PYTHONPATH=. pytest -q tests/test_main.py
+python3 app/main.py --serve
+```
+
+- `GET /health` -> health check
+- `POST /invoice` -> invoice summary JSON
+
+Example:
+
+```bash
+curl -sS -X POST http://localhost:8000/invoice \
+  -H "Content-Type: application/json" \
+  -d client:Acme Co
 ```
