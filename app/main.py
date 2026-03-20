@@ -271,7 +271,7 @@ LANDING_HTML = """<!doctype html>
           }
 
           statusEl.textContent = `Success (${response.status})`;
-          resultEl.textContent = data.summary + '\n\n' + JSON.stringify(data.invoice, null, 2);
+          resultEl.textContent = data.summary + '\\n\\n' + JSON.stringify(data.invoice, null, 2);
           resultEl.classList.add('ok');
         } catch (error) {
           statusEl.textContent = 'Network error';
