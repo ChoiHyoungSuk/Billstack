@@ -20,7 +20,7 @@ python3 app/main.py --serve
 Example:
 
 ```bash
-curl -sS -X POST http://localhost:8000/invoice \
-  -H "Content-Type: application/json" \
-  -d client:Acme Co
+curl -sS -X POST http://localhost:8000/invoice \\
+  -H "Content-Type: application/json" \\
+  -d "{\"client\":\"Acme Co\",\"project\":\"Landing Page\",\"hourly_rate\":100,\"hours\":5.5,\"tax_rate\":0.1}"
 ```

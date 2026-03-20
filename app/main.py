@@ -35,10 +35,10 @@ def create_invoice(data: InvoiceInput) -> dict:
 
 def render_invoice_summary(invoice: dict) -> str:
     return (
-        f"Invoice for {invoice[client]} ({invoice[project]})\n"
-        f"Work: {invoice[line_item][description]}\n"
-        f"Tax: ${invoice[tax]:.2f}\n"
-        f"Amount due: ${invoice[total]:.2f}"
+        f"Invoice for {invoice['client']} ({invoice['project']})\n"
+        f"Work: {invoice['line_item']['description']}\n"
+        f"Tax: ${invoice['tax']:.2f}\n"
+        f"Amount due: ${invoice['total']:.2f}"
     )
 
 
