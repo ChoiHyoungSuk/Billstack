@@ -42,23 +42,69 @@ def render_invoice_summary(invoice: dict) -> str:
     )
 
 
+LANDING_HTML = """<!doctype html>
+<html lang=\"en\">
+  <head>
+    <meta charset=\"utf-8\" />
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+    <title>Billstack</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif; margin: 2rem; line-height: 1.5; }
+      .card { max-width: 720px; border: 1px solid #ddd; border-radius: 12px; padding: 1rem 1.25rem; }
+      code { background: #f5f5f5; padding: 0.15rem 0.3rem; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <div class=\"card\">
+      <h1>Billstack</h1>
+      <p>Invoice summary API is running.</p>
+      <p>Health: <code>GET /health</code></p>
+      <p>Invoice endpoint: <code>POST /invoice</code></p>
+    </div>
+  </body>
+</html>
+"""
+
+
 class BillstackHandler(BaseHTTPRequestHandler):
-    def _send_json(self, status: int, payload: dict) -> None:
+    def _send_json(self, status: int, payload: dict, *, write_body: bool = True) -> None:
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(body)
+        if write_body:
+            self.wfile.write(body)
+
+    def _send_html(self, status: int, html: str, *, write_body: bool = True) -> None:
+        body = html.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        if write_body:
+            self.wfile.write(body)
 
     def log_message(self, format: str, *args) -> None:  # pragma: no cover
         return
 
     def do_GET(self) -> None:  # noqa: N802
-        if self.path in ("/", "/health"):
+        if self.path == "/":
+            self._send_html(200, LANDING_HTML)
+            return
+        if self.path == "/health":
             self._send_json(200, {"status": "ok", "service": "billstack"})
             return
         self._send_json(404, {"error": "not_found"})
+
+    def do_HEAD(self) -> None:  # noqa: N802
+        if self.path == "/":
+            self._send_html(200, LANDING_HTML, write_body=False)
+            return
+        if self.path == "/health":
+            self._send_json(200, {"status": "ok", "service": "billstack"}, write_body=False)
+            return
+        self._send_json(404, {"error": "not_found"}, write_body=False)
 
     def do_POST(self) -> None:  # noqa: N802
         if self.path != "/invoice":
