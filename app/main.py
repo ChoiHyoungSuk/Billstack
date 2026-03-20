@@ -43,6 +43,46 @@ def render_invoice_summary(invoice: dict) -> str:
     )
 
 
+def run_conversion_flow(payload: dict) -> dict:
+    required = ["email", "business_name", "plan_code", "billing_cycle", "payment_token"]
+    missing = [field for field in required if not payload.get(field)]
+    if missing:
+        raise ValueError("missing_fields:" + ",".join(missing))
+
+    plan_code = str(payload["plan_code"])
+    billing_cycle = str(payload["billing_cycle"])
+    if plan_code not in {"starter", "growth"}:
+        raise ValueError("invalid_plan_code")
+    if billing_cycle not in {"monthly", "annual"}:
+        raise ValueError("invalid_billing_cycle")
+
+    amount_cents = 1900 if plan_code == "starter" else 4900
+    if billing_cycle == "annual":
+        amount_cents *= 10
+
+    paid = str(payload["payment_token"]).startswith("tok_")
+    payment_status = "paid" if paid else "declined"
+
+    return {
+        "lead": {
+            "email": str(payload["email"]),
+            "business_name": str(payload["business_name"]),
+        },
+        "checkout": {
+            "plan_code": plan_code,
+            "billing_cycle": billing_cycle,
+            "amount_cents": amount_cents,
+            "currency": "USD",
+        },
+        "payment": {
+            "status": payment_status,
+        },
+        "workspace": {
+            "status": "ready" if paid else "pending_payment",
+        },
+    }
+
+
 LANDING_HTML = """<!doctype html>
 <html lang=\"en\">
   <head>
@@ -329,9 +369,6 @@ class BillstackHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
-        if path != "/invoice":
-            self._send_json(404, {"error": "not_found"})
-            return
 
         try:
             length = int(self.headers.get("Content-Length", "0"))
@@ -343,20 +380,43 @@ class BillstackHandler(BaseHTTPRequestHandler):
                 payload = {key: values[0] if values else "" for key, values in form.items()}
             else:
                 payload = json.loads(raw.decode("utf-8")) if raw else {}
-
-            data = InvoiceInput(
-                client=str(payload["client"]),
-                project=str(payload["project"]),
-                hourly_rate=float(payload["hourly_rate"]),
-                hours=float(payload["hours"]),
-                tax_rate=float(payload.get("tax_rate", 0.0)),
-            )
-        except (KeyError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        except (ValueError, TypeError, json.JSONDecodeError) as exc:
             self._send_json(400, {"error": "invalid_payload", "detail": str(exc)})
             return
 
-        invoice = create_invoice(data)
-        self._send_json(200, {"invoice": invoice, "summary": render_invoice_summary(invoice)})
+        if path == "/invoice":
+            try:
+                data = InvoiceInput(
+                    client=str(payload["client"]),
+                    project=str(payload["project"]),
+                    hourly_rate=float(payload["hourly_rate"]),
+                    hours=float(payload["hours"]),
+                    tax_rate=float(payload.get("tax_rate", 0.0)),
+                )
+            except (KeyError, ValueError, TypeError) as exc:
+                self._send_json(400, {"error": "invalid_payload", "detail": str(exc)})
+                return
+
+            invoice = create_invoice(data)
+            self._send_json(200, {"invoice": invoice, "summary": render_invoice_summary(invoice)})
+            return
+
+        if path == "/api/conversion-flow":
+            try:
+                flow = run_conversion_flow(payload if isinstance(payload, dict) else {})
+            except ValueError as exc:
+                message = str(exc)
+                if message.startswith("missing_fields:"):
+                    fields = [field for field in message.split(":", 1)[1].split(",") if field]
+                    self._send_json(400, {"error": "missing_fields", "fields": fields})
+                    return
+                self._send_json(400, {"error": "validation_error", "detail": message})
+                return
+
+            self._send_json(200, flow)
+            return
+
+        self._send_json(404, {"error": "not_found"})
 
 
 def run_server() -> None:

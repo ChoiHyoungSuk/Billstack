@@ -1,4 +1,6 @@
-from app.main import InvoiceInput, create_invoice, render_invoice_summary
+import pytest
+
+from app.main import InvoiceInput, create_invoice, render_invoice_summary, run_conversion_flow
 
 
 def test_create_invoice_and_summary():
@@ -19,3 +21,24 @@ def test_create_invoice_and_summary():
     summary = render_invoice_summary(invoice)
     assert "Invoice for Acme Co (Landing Page)" in summary
     assert "Amount due: $605.00" in summary
+
+
+def test_run_conversion_flow_paid():
+    result = run_conversion_flow(
+        {
+            "email": "owner@example.com",
+            "business_name": "Orbit Studio",
+            "plan_code": "starter",
+            "billing_cycle": "monthly",
+            "payment_token": "tok_visa",
+        }
+    )
+    assert result["payment"]["status"] == "paid"
+    assert result["workspace"]["status"] == "ready"
+    assert result["checkout"]["amount_cents"] == 1900
+
+
+def test_run_conversion_flow_requires_fields():
+    with pytest.raises(ValueError) as exc:
+        run_conversion_flow({})
+    assert "missing_fields:" in str(exc.value)
