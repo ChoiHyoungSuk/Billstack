@@ -5,6 +5,7 @@ import json
 import os
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import parse_qs, urlparse
 
 
 @dataclass(frozen=True)
@@ -179,7 +180,7 @@ LANDING_HTML = """<!doctype html>
       <section class=\"grid\">
         <article class=\"card\">
           <h2>Invoice Preview</h2>
-          <form id=\"invoice-form\">
+          <form id=\"invoice-form\" method=\"post\" action=\"/invoice\">
             <div class=\"row two\">
               <div>
                 <label for=\"client\">Client</label>
@@ -307,32 +308,42 @@ class BillstackHandler(BaseHTTPRequestHandler):
         return
 
     def do_GET(self) -> None:  # noqa: N802
-        if self.path == "/":
+        path = urlparse(self.path).path
+        if path == "/":
             self._send_html(200, LANDING_HTML)
             return
-        if self.path == "/health":
+        if path == "/health":
             self._send_json(200, {"status": "ok", "service": "billstack"})
             return
         self._send_json(404, {"error": "not_found"})
 
     def do_HEAD(self) -> None:  # noqa: N802
-        if self.path == "/":
+        path = urlparse(self.path).path
+        if path == "/":
             self._send_html(200, LANDING_HTML, write_body=False)
             return
-        if self.path == "/health":
+        if path == "/health":
             self._send_json(200, {"status": "ok", "service": "billstack"}, write_body=False)
             return
         self._send_json(404, {"error": "not_found"}, write_body=False)
 
     def do_POST(self) -> None:  # noqa: N802
-        if self.path != "/invoice":
+        path = urlparse(self.path).path
+        if path != "/invoice":
             self._send_json(404, {"error": "not_found"})
             return
 
         try:
             length = int(self.headers.get("Content-Length", "0"))
             raw = self.rfile.read(length)
-            payload = json.loads(raw.decode("utf-8")) if raw else {}
+            content_type = str(self.headers.get("Content-Type") or "").lower()
+
+            if raw and "application/x-www-form-urlencoded" in content_type:
+                form = parse_qs(raw.decode("utf-8"), keep_blank_values=True)
+                payload = {key: values[0] if values else "" for key, values in form.items()}
+            else:
+                payload = json.loads(raw.decode("utf-8")) if raw else {}
+
             data = InvoiceInput(
                 client=str(payload["client"]),
                 project=str(payload["project"]),
